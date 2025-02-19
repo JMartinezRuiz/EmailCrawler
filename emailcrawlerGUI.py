@@ -193,12 +193,8 @@ def extract_emails_for_website(driver, website, show_all=False, contact_suffixes
 
 
 def iniciar_driver(headless=False):
-    """Initialize undetected_chromedriver with or without headless mode."""
-    user_data_dir = r"C:\Users\Gigabyte\AppData\Local\Google\Chrome\User Data\Patata"
-    profile = "Patata"
     options = uc.ChromeOptions()
-    options.add_argument(f"--user-data-dir={user_data_dir}")
-    options.add_argument(f"--profile-directory={profile}")
+    # Se eliminan los argumentos de perfil y directorio de usuario para que funcione en cualquier equipo
     options.add_argument("--start-maximized")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -221,6 +217,7 @@ def iniciar_driver(headless=False):
                   "AppleWebKit/537.36 (KHTML, like Gecko) "
                   "Chrome/115.0.0.0 Safari/537.36")
     options.add_argument(f"--user-agent={user_agent}")
+
     if headless:
         options.add_argument("--headless=new")
 
