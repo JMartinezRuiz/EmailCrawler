@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
+# LastVersion: lastversion
 """
 compare_aba.py
 
-Script para comparar dos ficheros de ABAs:
-- FILE1: salida1.txt (ABAs del primer script)
-- FILE2: salida2.txt (ABAs del segundo script)
+Compara dos ficheros de ABAs:
+- ny.txt    (primer fichero)
+- boston.txt (segundo fichero)
 
-El script imprime los ABAs que aparecen en FILE2 pero NO en FILE1.
-Soporta ficheros en UTF-8 o Latin-1 y gestiona errores de lectura.
+Muestra los números que aparecen en boston.txt pero NO en ny.txt.
+Si no hay ninguno, imprime un mensaje indicando que no hay coincidencias.
+Soporta ficheros en UTF-8 o Latin-1.
 """
 import sys
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
-FILE1 = "salida1.txt"   # Fichero con ABAs extraídos del primer script
-FILE2 = "salida2.txt"   # Fichero con ABAs extraídos del segundo script
+FILE_NY     = "ny.txt"       # Primer fichero (NY)
+FILE_BOSTON = "boston.txt"   # Segundo fichero (Boston)
 # ────────────────────────────────────────────────────────────────────────────────
-
 
 def read_lines(filepath: str):
     """
     Intenta leer todas las líneas de un fichero usando utf-8 y, si falla,
-    vuelve a intentarlo con latin-1. Devuelve una lista de líneas sin saltos de línea.
+    reintenta con latin-1. Devuelve lista de líneas sin saltos de línea.
     """
     for enc in ("utf-8", "latin-1"):
         try:
@@ -35,25 +36,34 @@ def read_lines(filepath: str):
     sys.exit(1)
 
 
-def compara_abas(f1: str, f2: str):
+def compara_ny_boston(ny_file: str, boston_file: str):
     """
-    Compara dos ficheros que contienen un ABA por línea (sin duplicados).
-    Imprime los ABAs que están en f2 pero no en f1.
+    Imprime los números que están en boston_file pero no en ny_file.
+    Si no hay ninguno, informa que no hay coincidencias.
     """
-    lines1 = read_lines(f1)
-    lines2 = read_lines(f2)
+    # Leer ficheros
+    lines_ny     = read_lines(ny_file)
+    lines_boston = read_lines(boston_file)
 
-    # Crear conjuntos y filtrar líneas vacías
-    set1 = {line.strip() for line in lines1 if line.strip()}
-    set2 = {line.strip() for line in lines2 if line.strip()}
+    # Convertir NY a set para lookup rápido
+    set_ny = {line.strip() for line in lines_ny if line.strip()}
 
-    diff = set2 - set1
-    if not diff:
-        print("No hay ABAs únicos en el segundo fichero.")
+    # Buscar en Boston aquellos no presentes en NY, preservando orden
+    encontrados = []
+    for line in lines_boston:
+        aba = line.strip()
+        if not aba:
+            continue
+        if aba not in set_ny:
+            encontrados.append(aba)
+
+    # Mostrar resultados
+    if not encontrados:
+        print("No se encontraron coincidencias.")
     else:
-        for aba in sorted(diff):
+        for aba in encontrados:
             print(aba)
 
 
 if __name__ == "__main__":
-    compara_abas(FILE1, FILE2)
+    compara_ny_boston(FILE_NY, FILE_BOSTON)
