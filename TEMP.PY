@@ -1,48 +1,39 @@
 #!/usr/bin/env python3
 # aba.py
 
-import re
+import sys
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
 FICHERO         = "ruta/al/fichero.txt"  # Ruta al fichero de texto
-COLUMNA         = 3                      # Número de columna que deseas extraer (1 = primera)
-MIN_ESPACIOS    = 4                      # Mínimo de espacios seguidos que actúan como separador
-SHOW_DUPLICATES = False                  # True: muestra duplicados; False: omite duplicados
-SKIP_CHARS      = 5                      # Número de caracteres a omitir al inicio de cada línea
+SKIP_CHARS      = 499                    # Posición de carácter a partir de la cual extraer
+FIELD_LENGTH    = 9                      # Longitud del campo a extraer (9 dígitos para ABA)
+SHOW_DUPLICATES = False                  # True: muestra todas las ocurrencias; False: omite duplicados
 # ────────────────────────────────────────────────────────────────────────────────
 
-def extrae_columna(fichero: str, columna: int, min_espacios: int, show_dups: bool, skip_chars: int):
+def extrae_aba(fichero: str, skip_chars: int, field_len: int, show_dups: bool):
     """
     Lee cada línea de 'fichero', omite los primeros 'skip_chars' caracteres,
-    divide en columnas usando bloques de 'min_espacios' o más espacios,
-    e imprime la 'columna'-ésima.
+    extrae 'field_len' caracteres como el campo ABA, y los imprime.
     Si show_dups es False, suprime valores repetidos.
     """
-    patron = re.compile(rf"\s{{{min_espacios},}}")
     vistos = set()
-
     try:
         with open(fichero, encoding="utf-8") as f:
             for linea in f:
                 linea = linea.rstrip("\n")
-                # Omitir los primeros skip_chars caracteres
-                if skip_chars > 0:
-                    linea = linea[skip_chars:]
-                campos = patron.split(linea)
-                idx = columna - 1
-                if 0 <= idx < len(campos):
-                    valor = campos[idx]
-                else:
+                if len(linea) <= skip_chars:
                     valor = ""
-
-                if show_dups:
-                    print(valor)
                 else:
-                    if valor not in vistos:
-                        print(valor)
-                        vistos.add(valor)
+                    # Extraer campo fijo de longitud field_len
+                    segmento = linea[skip_chars:skip_chars + field_len]
+                    valor = segmento.strip()
+
+                if show_dups or valor not in vistos:
+                    print(valor)
+                    vistos.add(valor)
     except FileNotFoundError:
-        print(f"ERROR: No se encontró el fichero '{fichero}'.")
+        print(f"ERROR: No se encontró el fichero '{fichero}'.", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
-    extrae_columna(FICHERO, COLUMNA, MIN_ESPACIOS, SHOW_DUPLICATES, SKIP_CHARS)
+    extrae_aba(FICHERO, SKIP_CHARS, FIELD_LENGTH, SHOW_DUPLICATES)
