@@ -1,45 +1,34 @@
 #!/usr/bin/env python3
+# aba.py
+
 import re
-import argparse
-import sys
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Extrae una columna de un fichero de texto con columnas separadas por N espacios."
-    )
-    parser.add_argument("fichero", help="Ruta al fichero de texto")
-    parser.add_argument(
-        "columna",
-        type=int,
-        help="Número de columna a extraer (1 = primera columna, 2 = segunda, …)",
-    )
-    parser.add_argument(
-        "--espacios",
-        type=int,
-        default=2,
-        help="Mínimo de espacios que definen el separador (por defecto: 2)",
-    )
-    args = parser.parse_args()
+# ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
+FICHERO      = "ruta/al/fichero.txt"  # ← Pon aquí la ruta a tu fichero de texto
+COLUMNA      = 3                      # ← Número de columna que deseas extraer (1 = primera columna)
+MIN_ESPACIOS = 4                      # ← Mínimo de espacios seguidos que actúan como separador
+# ────────────────────────────────────────────────────────────────────────────────
 
-    # Construimos el patrón: al menos N espacios seguidos
-    patron = re.compile(rf"\s{{{args.espacios},}}")
-
+def extrae_columna(fichero: str, columna: int, min_espacios: int):
+    """
+    Lee cada línea de 'fichero', divide en columnas usando como separador
+    bloques de 'min_espacios' o más espacios, e imprime la 'columna'-ésima.
+    """
+    # Compila patrón para N o más espacios
+    patron = re.compile(rf"\s{{{min_espacios},}}")
     try:
-        with open(args.fichero, encoding="utf-8") as f:
+        with open(fichero, encoding="utf-8") as f:
             for linea in f:
                 linea = linea.rstrip("\n")
-                # Partimos la línea usando el patrón
                 campos = patron.split(linea)
-                idx = args.columna - 1
+                idx = columna - 1
                 if 0 <= idx < len(campos):
                     print(campos[idx])
                 else:
-                    # Si no hay ese campo, imprimimos vacío o un warning:
-                    print("", file=sys.stderr)
+                    # Línea sin suficiente número de columnas: imprime vacío
+                    print("")
     except FileNotFoundError:
-        print(f"ERROR: No existe el fichero {args.fichero}", file=sys.stderr)
-        sys.exit(1)
+        print(f"ERROR: No se encontró el fichero '{fichero}'.")
 
 if __name__ == "__main__":
-    main()
-
+    extrae_columna(FICHERO, COLUMNA, MIN_ESPACIOS)
