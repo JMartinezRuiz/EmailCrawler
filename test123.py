@@ -1,59 +1,76 @@
 #!/usr/bin/env python3
 """
-compare_aba.py
+aba_no_bic.py
 
-Script para comparar dos ficheros de ABAs:
-- FILE1: salida1.txt (ABAs del primer script)
-- FILE2: salida2.txt (ABAs del segundo script)
+Identifica los ABA en un fichero que NO tienen BIC.
 
-El script imprime los ABAs que aparecen en FILE2 pero NO en FILE1.
-Soporta ficheros en UTF-8 o Latin-1 y gestiona errores de lectura.
+- ABA empieza en posición 501 (1-based) de cada línea, longitud 9 dígitos.
+- BIC esperado empieza en posición 537 (1-based). Consideramos que no hay BIC
+  si los siguientes N caracteres (BIC_CHECK_LEN) son espacios o la posición no existe.
+- Imprime cada ABA que cumpla la condición.
+- Opción de omitir duplicados basados en ABA mediante SHOW_DUPLICATES.
+Soporta UTF-8 (con BOM) y Latin-1.
 """
 import sys
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
-FILE1 = "salida1.txt"   # Fichero con ABAs extraídos del primer script
-FILE2 = "salida2.txt"   # Fichero con ABAs extraídos del segundo script
+FICHERO            = "ruta/al/fichero.txt"  # Ruta al fichero de texto
+ABA_POS_1BASED     = 501                     # Posición 1-based donde empieza ABA
+FIELD_LENGTH       = 9                       # Longitud de los 9 dígitos del ABA
+BIC_POS_1BASED     = 537                     # Posición 1-based donde empieza BIC
+BIC_CHECK_LEN      = 5                       # Número de caracteres a verificar para BIC ausente
+SHOW_DUPLICATES    = False                   # False: omite ABA repetidos; True: muestra todos
 # ────────────────────────────────────────────────────────────────────────────────
 
 
 def read_lines(filepath: str):
     """
-    Intenta leer todas las líneas de un fichero usando utf-8 y, si falla,
-    vuelve a intentarlo con latin-1. Devuelve una lista de líneas sin saltos de línea.
+    Lee todas las líneas de un fichero con fallback en utf-8-sig y latin-1.
+    Devuelve lista de líneas sin salto final.
     """
-    for enc in ("utf-8", "latin-1"):
+    for enc in ("utf-8-sig", "latin-1"):
         try:
             with open(filepath, encoding=enc) as f:
-                return [line.rstrip("\n") for line in f]
+                return [l.rstrip("\n") for l in f]
         except UnicodeDecodeError:
             continue
         except FileNotFoundError:
             print(f"ERROR: No se encontró el fichero '{filepath}'", file=sys.stderr)
             sys.exit(1)
-    print(f"ERROR: No se pudo leer el fichero '{filepath}' en utf-8 ni latin-1.", file=sys.stderr)
+    print(f"ERROR: No se pudo leer '{filepath}' en utf-8-sig ni latin-1.", file=sys.stderr)
     sys.exit(1)
 
 
-def compara_abas(f1: str, f2: str):
+def extrae_aba_sin_bic(fichero: str, aba_pos: int, field_len: int,
+                      bic_pos: int, bic_check_len: int, show_dups: bool):
     """
-    Compara dos ficheros que contienen un ABA por línea (sin duplicados).
-    Imprime los ABAs que están en f2 pero no en f1.
+    Extrae ABAs que no tienen BIC.
     """
-    lines1 = read_lines(f1)
-    lines2 = read_lines(f2)
+    vistos = set()
+    # Conversión a índices 0-based
+    skip = aba_pos - 1
+    bic_index = bic_pos - 1
+    lineas = read_lines(fichero)
 
-    # Crear conjuntos y filtrar líneas vacías
-    set1 = {line.strip() for line in lines1 if line.strip()}
-    set2 = {line.strip() for line in lines2 if line.strip()}
-
-    diff = set2 - set1
-    if not diff:
-        print("No hay ABAs únicos en el segundo fichero.")
-    else:
-        for aba in sorted(diff):
-            print(aba)
+    for linea in lineas:
+        # Extraer ABA si la línea es lo bastante larga
+        if len(linea) < skip + field_len:
+            continue
+        aba = linea[skip:skip + field_len].strip()
+        if not aba:
+            continue
+        # Verificar ausencia de BIC: si no hay suficientes chars o todos son espacios
+        bic_region = linea[bic_index:bic_index + bic_check_len] if len(linea) >= bic_index + bic_check_len else ""
+        if bic_region.strip() != "":
+            # Existe algún carácter no-espacio → hay BIC, ignorar
+            continue
+        # Control de duplicados
+        if not show_dups and aba in vistos:
+            continue
+        vistos.add(aba)
+        print(aba)
 
 
 if __name__ == "__main__":
-    compara_abas(FILE1, FILE2)
+    extrae_aba_sin_bic(FICHERO, ABA_POS_1BASED, FIELD_LENGTH,
+                      BIC_POS_1BASED, BIC_CHECK_LEN, SHOW_DUPLICATES)
