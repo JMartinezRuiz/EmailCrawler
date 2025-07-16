@@ -1,39 +1,53 @@
 #!/usr/bin/env python3
-# compare_aba.py
+# aba1.py
 
+import re
 import sys
 
 # ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
-FILE1 = "salida1.txt"   # Fichero con ABAs extraídos del primer script
-FILE2 = "salida2.txt"   # Fichero con ABAs extraídos del segundo script
+FICHERO         = "ruta/al/fichero1.txt"  # Ruta al fichero de texto de entrada
+SHOW_DUPLICATES = False                   # True: muestra duplicados; False: omite duplicados
 # ────────────────────────────────────────────────────────────────────────────────
 
-def compara_abas(f1: str, f2: str):
+# Patrón para extraer el ABA: tres espacios, 'ABA', tres espacios, seguido de 9 dígitos
+PATRON_ABA = re.compile(r"\s{3}ABA\s{3}(\d{9})")
+
+
+def extrae_aba1(fichero: str, show_dups: bool):
     """
-    Compara dos ficheros que contienen un ABA por línea (sin duplicados).
-    Imprime los ABAs que están en f2 pero no en f1.
+    Lee cada línea de 'fichero', busca todas las ocurrencias del patrón
+    '   ABA   123456789' y extrae los 9 dígitos. Ignora líneas sin coincidencias.
+    Si show_dups es False, omite valores repetidos.
+
+    Soporta ficheros con encoding UTF-8 o ISO-8859-1 (Latin-1).
     """
-    try:
-        with open(f1, encoding="utf-8") as a:
-            set1 = {line.strip() for line in a if line.strip()}
-    except FileNotFoundError:
-        print(f"ERROR: No se encontró el fichero '{f1}'", file=sys.stderr)
+    vistos = set()
+    # Intentar abrir con distintos encodings
+    file_obj = None
+    for enc in ('utf-8', 'latin-1'):
+        try:
+            file_obj = open(fichero, encoding=enc)
+            break
+        except (UnicodeDecodeError, FileNotFoundError) as e:
+            # Saltar al siguiente encoding si es error de decoding
+            if isinstance(e, FileNotFoundError):
+                print(f"ERROR: No se encontró el fichero '{fichero}'.", file=sys.stderr)
+                sys.exit(1)
+            continue
+
+    if file_obj is None:
+        print(f"ERROR: No se pudo leer el fichero '{fichero}' en UTF-8 ni Latin-1.", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        with open(f2, encoding="utf-8") as b:
-            set2 = {line.strip() for line in b if line.strip()}
-    except FileNotFoundError:
-        print(f"ERROR: No se encontró el fichero '{f2}'", file=sys.stderr)
-        sys.exit(1)
+    with file_obj as f:
+        for linea in f:
+            # Buscar todos los patrones en la línea
+            for match in PATRON_ABA.finditer(linea):
+                aba = match.group(1)
+                if show_dups or aba not in vistos:
+                    print(aba)
+                    vistos.add(aba)
 
-    # Calcular diferencia: en f2 pero no en f1
-    diff = set2 - set1
-    if not diff:
-        print("No hay ABAs únicos en el segundo fichero.")
-    else:
-        for aba in sorted(diff):
-            print(aba)
 
 if __name__ == "__main__":
-    compara_abas(FILE1, FILE2)
+    extrae_aba1(FICHERO, SHOW_DUPLICATES)
