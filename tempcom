@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+# compare_aba.py
+
+import sys
+
+# ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
+FILE1 = "salida1.txt"   # Fichero con ABAs extraídos del primer script
+FILE2 = "salida2.txt"   # Fichero con ABAs extraídos del segundo script
+# ────────────────────────────────────────────────────────────────────────────────
+
+def compara_abas(f1: str, f2: str):
+    """
+    Compara dos ficheros que contienen un ABA por línea (sin duplicados).
+    Imprime los ABAs que están en f2 pero no en f1.
+    """
+    try:
+        with open(f1, encoding="utf-8") as a:
+            set1 = {line.strip() for line in a if line.strip()}
+    except FileNotFoundError:
+        print(f"ERROR: No se encontró el fichero '{f1}'", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        with open(f2, encoding="utf-8") as b:
+            set2 = {line.strip() for line in b if line.strip()}
+    except FileNotFoundError:
+        print(f"ERROR: No se encontró el fichero '{f2}'", file=sys.stderr)
+        sys.exit(1)
+
+    # Calcular diferencia: en f2 pero no en f1
+    diff = set2 - set1
+    if not diff:
+        print("No hay ABAs únicos en el segundo fichero.")
+    else:
+        for aba in sorted(diff):
+            print(aba)
+
+if __name__ == "__main__":
+    compara_abas(FILE1, FILE2)
