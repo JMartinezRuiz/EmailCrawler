@@ -1,69 +1,11 @@
-#!/usr/bin/env python3
-# LastVersion: lastversion
-"""
-compare_aba.py
-
-Compara dos ficheros de ABAs:
-- ny.txt    (primer fichero)
-- boston.txt (segundo fichero)
-
-Muestra los números que aparecen en boston.txt pero NO en ny.txt.
-Si no hay ninguno, imprime un mensaje indicando que no hay coincidencias.
-Soporta ficheros en UTF-8 o Latin-1.
-"""
-import sys
-
-# ─── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
-FILE_NY     = "ny.txt"       # Primer fichero (NY)
-FILE_BOSTON = "boston.txt"   # Segundo fichero (Boston)
-# ────────────────────────────────────────────────────────────────────────────────
-
-def read_lines(filepath: str):
-    """
-    Intenta leer todas las líneas de un fichero usando utf-8 y, si falla,
-    reintenta con latin-1. Devuelve lista de líneas sin saltos de línea.
-    """
-    for enc in ("utf-8", "latin-1"):
-        try:
-            with open(filepath, encoding=enc) as f:
-                return [line.rstrip("\n") for line in f]
-        except UnicodeDecodeError:
-            continue
-        except FileNotFoundError:
-            print(f"ERROR: No se encontró el fichero '{filepath}'", file=sys.stderr)
-            sys.exit(1)
-    print(f"ERROR: No se pudo leer el fichero '{filepath}' en utf-8 ni latin-1.", file=sys.stderr)
-    sys.exit(1)
-
-
-def compara_ny_boston(ny_file: str, boston_file: str):
-    """
-    Imprime los números que están en boston_file pero no en ny_file.
-    Si no hay ninguno, informa que no hay coincidencias.
-    """
-    # Leer ficheros
-    lines_ny     = read_lines(ny_file)
-    lines_boston = read_lines(boston_file)
-
-    # Convertir NY a set para lookup rápido
-    set_ny = {line.strip() for line in lines_ny if line.strip()}
-
-    # Buscar en Boston aquellos no presentes en NY, preservando orden
-    encontrados = []
-    for line in lines_boston:
-        aba = line.strip()
-        if not aba:
-            continue
-        if aba not in set_ny:
-            encontrados.append(aba)
-
-    # Mostrar resultados
-    if not encontrados:
-        print("No se encontraron coincidencias.")
-    else:
-        for aba in encontrados:
-            print(aba)
-
-
-if __name__ == "__main__":
-    compara_ny_boston(FILE_NY, FILE_BOSTON)
+SELECT
+  gifts.users_ver.user_id,
+  gifts.users_ver.enable  AS users_ver_enable,
+  gifts.users_ver.deleted AS users_ver_deleted,
+  gifts.users.enable      AS users_enable,
+  gifts.users.deleted     AS users_deleted
+FROM gifts.users_ver
+LEFT JOIN gifts.users
+  ON gifts.users.user_id = gifts.users_ver.user_id
+WHERE gifts.users_ver.deleted = 'Y'
+  AND (gifts.users.user_id IS NULL OR gifts.users.deleted <> 'Y');
