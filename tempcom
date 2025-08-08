@@ -1,13 +1,13 @@
 SELECT
-  gifts.users_ver.user_id,
-  gifts.users_ver.enable        AS users_ver_enable,
-  gifts.users_ver.deleted       AS users_ver_deleted,
-  gifts.users_ver.last_login    AS users_ver_last_login,
-  gifts.users.enable            AS users_enable,
-  gifts.users.deleted           AS users_deleted,
-  gifts.users.last_login        AS users_last_login
-FROM gifts.users_ver
-LEFT JOIN gifts.users
-  ON gifts.users.user_id = gifts.users_ver.user_id
-WHERE gifts.users_ver.deleted = 'Y'
-  AND (gifts.users.user_id IS NULL OR gifts.users.deleted <> 'Y');
+  gifts.users.user_name,
+  gifts.users.enable           AS users_enable,
+  gifts.users.deleted          AS users_deleted,
+  gifts.users.last_login       AS users_last_login,
+  gifts.users_ver.enable       AS users_ver_enable,
+  gifts.users_ver.deleted      AS users_ver_deleted,
+  gifts.users_ver.last_login   AS users_ver_last_login
+FROM gifts.users
+JOIN gifts.users_ver
+  ON gifts.users_ver.user_name = gifts.users.user_name
+WHERE gifts.users.enable = 'Y'
+  AND (gifts.users_ver.enable = 'N' OR gifts.users_ver.deleted = 'Y');
