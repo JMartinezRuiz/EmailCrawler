@@ -1,13 +1,17 @@
--- Config de archivos de tempdb: tamaño inicial, crecimiento y si es en %
-SELECT
-  db               = DB_NAME(mf.database_id),
-  mf.file_id, mf.name, mf.type_desc, mf.physical_name,
-  size_mb          = CONVERT(decimal(18,2), mf.size*8.0/1024),
-  max_size_mb      = CASE WHEN mf.max_size = -1 THEN -1 ELSE CONVERT(decimal(18,2), mf.max_size*8.0/1024) END,
-  is_percent_growth,
-  growth_desc      = CASE WHEN mf.is_percent_growth=1 
-                          THEN CONCAT(mf.growth, '%') 
-                          ELSE CONCAT(CONVERT(int, mf.growth*8.0/1024), ' MB') END
-FROM sys.master_files AS mf
-WHERE mf.database_id = DB_ID('tempdb')
-ORDER BY mf.file_id;
+DECLARE @trace NVARCHAR(4000) = (
+  SELECT TOP 1 CONVERT(NVARCHAR(4000), value) 
+  FROM sys.fn_trace_getinfo(NULL) 
+  WHERE property = 2
+);
+
+SELECT TOP(200)
+  event_name     = te.name,
+  t.DatabaseName, t.FileName,
+  StartTime      = t.StartTime,
+  t.HostName, t.ApplicationName, t.LoginName, t.SPID,
+  SizeChangeMB   = CONVERT(decimal(18,2), t.IntegerData * 8.0 / 1024)  -- páginas 8KB -> MB
+FROM sys.fn_trace_gettable(@trace, DEFAULT) AS t
+JOIN sys.trace_events AS te ON t.EventClass = te.trace_event_id
+WHERE t.EventClass IN (92,93,94,95)         -- Data/Log Auto Grow/Shrink
+  AND t.DatabaseID = DB_ID('tempdb')
+ORDER BY t.StartTime DESC;
