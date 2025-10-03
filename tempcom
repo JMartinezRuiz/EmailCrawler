@@ -1,25 +1,13 @@
--- Uso por archivo en tempdb
-USE tempdb;
-SELECT 
-  df.file_id,
-  df.name,
-  df.physical_name,
-  df.type_desc,
-  size_mb   = CONVERT(decimal(18,2), df.size * 8.0 / 1024),
-  used_mb   = CONVERT(decimal(18,2), (df.size - fsu.unallocated_extent_page_count) * 8.0 / 1024),
-  free_mb   = CONVERT(decimal(18,2), fsu.unallocated_extent_page_count * 8.0 / 1024),
-  user_obj_mb     = CONVERT(decimal(18,2), fsu.user_object_reserved_page_count * 8.0 / 1024),
-  internal_obj_mb = CONVERT(decimal(18,2), fsu.internal_object_reserved_page_count * 8.0 / 1024),
-  version_store_mb= CONVERT(decimal(18,2), fsu.version_store_reserved_page_count * 8.0 / 1024)
-FROM tempdb.sys.database_files AS df
-JOIN sys.dm_db_file_space_usage AS fsu
-  ON df.file_id = fsu.file_id
-ORDER BY df.file_id;
-
--- Totales en tempdb
-SELECT 
-  total_user_mb        = SUM(user_object_reserved_page_count) * 8 / 1024,
-  total_internal_mb    = SUM(internal_object_reserved_page_count) * 8 / 1024,
-  total_versionstore_mb= SUM(version_store_reserved_page_count) * 8 / 1024,
-  total_free_mb        = SUM(unallocated_extent_page_count)    * 8 / 1024
-FROM sys.dm_db_file_space_usage;
+-- Config de archivos de tempdb: tamaño inicial, crecimiento y si es en %
+SELECT
+  db               = DB_NAME(mf.database_id),
+  mf.file_id, mf.name, mf.type_desc, mf.physical_name,
+  size_mb          = CONVERT(decimal(18,2), mf.size*8.0/1024),
+  max_size_mb      = CASE WHEN mf.max_size = -1 THEN -1 ELSE CONVERT(decimal(18,2), mf.max_size*8.0/1024) END,
+  is_percent_growth,
+  growth_desc      = CASE WHEN mf.is_percent_growth=1 
+                          THEN CONCAT(mf.growth, '%') 
+                          ELSE CONCAT(CONVERT(int, mf.growth*8.0/1024), ' MB') END
+FROM sys.master_files AS mf
+WHERE mf.database_id = DB_ID('tempdb')
+ORDER BY mf.file_id;
