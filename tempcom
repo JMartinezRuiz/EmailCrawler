@@ -1,13 +1,25 @@
-SELECT
-  gifts.users.user_name,
-  gifts.users.enable           AS users_enable,
-  gifts.users.deleted          AS users_deleted,
-  gifts.users.last_login       AS users_last_login,
-  gifts.users_ver.enable       AS users_ver_enable,
-  gifts.users_ver.deleted      AS users_ver_deleted,
-  gifts.users_ver.last_login   AS users_ver_last_login
-FROM gifts.users
-JOIN gifts.users_ver
-  ON gifts.users_ver.user_name = gifts.users.user_name
-WHERE gifts.users.enable = 'Y'
-  AND (gifts.users_ver.enable = 'N' OR gifts.users_ver.deleted = 'Y');
+-- Uso por archivo en tempdb
+USE tempdb;
+SELECT 
+  df.file_id,
+  df.name,
+  df.physical_name,
+  df.type_desc,
+  size_mb   = CONVERT(decimal(18,2), df.size * 8.0 / 1024),
+  used_mb   = CONVERT(decimal(18,2), (df.size - fsu.unallocated_extent_page_count) * 8.0 / 1024),
+  free_mb   = CONVERT(decimal(18,2), fsu.unallocated_extent_page_count * 8.0 / 1024),
+  user_obj_mb     = CONVERT(decimal(18,2), fsu.user_object_reserved_page_count * 8.0 / 1024),
+  internal_obj_mb = CONVERT(decimal(18,2), fsu.internal_object_reserved_page_count * 8.0 / 1024),
+  version_store_mb= CONVERT(decimal(18,2), fsu.version_store_reserved_page_count * 8.0 / 1024)
+FROM tempdb.sys.database_files AS df
+JOIN sys.dm_db_file_space_usage AS fsu
+  ON df.file_id = fsu.file_id
+ORDER BY df.file_id;
+
+-- Totales en tempdb
+SELECT 
+  total_user_mb        = SUM(user_object_reserved_page_count) * 8 / 1024,
+  total_internal_mb    = SUM(internal_object_reserved_page_count) * 8 / 1024,
+  total_versionstore_mb= SUM(version_store_reserved_page_count) * 8 / 1024,
+  total_free_mb        = SUM(unallocated_extent_page_count)    * 8 / 1024
+FROM sys.dm_db_file_space_usage;
